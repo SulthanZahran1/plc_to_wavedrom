@@ -631,9 +631,10 @@ class GenericTemplateLogParser(BaseParser):
 
             path = (d.get("path") or "").strip()
             md = did_re.search(path)
-            if not md:
-                raise ValueError(f"Device id not found in path: {path}")
-            device_id = sys.intern(md.group(1))
+            if md:
+                device_id = sys.intern(md.group(1))
+            else:
+                device_id = sys.intern((d.get("category") or "").strip() or "plc")
 
             signal = sys.intern((d.get("signal") or "").strip())
             raw_value = (d.get("value") or "").strip()

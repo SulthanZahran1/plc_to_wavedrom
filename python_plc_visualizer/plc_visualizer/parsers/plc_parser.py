@@ -14,7 +14,7 @@ class PLCDebugParser(GenericTemplateLogParser):
     LINE_RE = re.compile(
         r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\s+'            # ts
         r'\[(?P<level>[^\]]+)\]\s+'                                         # [level]
-        r'\[(?P<path>[^\]]+)\]\s+'                                          # [path]
+        r'\[(?P<path>[^\]]*)\]\s+'                                          # [path] (may be empty)
         r'\[(?P<category>[^:\]]+):(?P<signal>[^\]]+)\]\s+'                  # [category:signal]
         r'\((?P<dtype>[^)]+)\)\s*:\s*(?P<value>.*)\s*$'                     # (dtype) : value
     )
@@ -59,6 +59,7 @@ class PLCDebugParser(GenericTemplateLogParser):
         colon_idx = cat_signal.find(':')
         if colon_idx == -1:
             return None
+        category = cat_signal[:colon_idx].strip()
         signal = cat_signal[colon_idx + 1:].strip()
 
         # 5. Extract dtype from (dtype)
@@ -74,11 +75,12 @@ class PLCDebugParser(GenericTemplateLogParser):
             return None
         value_str = line[colon_space + 1:].strip()
 
-        # Extract device_id from path
+        # Extract device_id from path; fall back to category when path is empty
         md = did_re.search(path)
-        if not md:
-            return None
-        device_id = sys.intern(md.group(1))
+        if md:
+            device_id = sys.intern(md.group(1))
+        else:
+            device_id = sys.intern(category.strip() if category else "plc")
 
         # Get signal type from TYPE_MAP or infer
         stype = self.TYPE_MAP.get(dtype_token.lower())
